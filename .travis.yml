@@ -1,0 +1,31 @@
+sudo: false
+language: go
+go:
+ - 1.10.x
+
+install:
+  - go get github.com/kardianos/govendor
+  - go get github.com/tcnksm/ghr
+  - go get github.com/goreleaser/nfpm/cmd/nfpm
+
+script:
+  - govendor sync
+  - go generate
+  - go test ./...
+  - export APP_VERSION=$(git describe --tags --always --dirty)
+  - export APP_VERSION_NO_V="$(echo "$APP_VERSION" | sed "s/v//g")"
+  - mkdir build
+  - GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$APP_VERSION" -o "build/repogen-linux-64bit"
+  - GOOS=linux GOARCH=386 go build -ldflags "-X main.version=$APP_VERSION" -o "build/repogen-linux-32bit"
+  - GOOS=linux GOARCH=arm go build -ldflags "-X main.version=$APP_VERSION" -o "build/repogen-linux-arm"
+  - nfpm pkg -f nfpm.yaml -t build/repogen_${APP_VERSION_NO_V}_amd64.deb
+  - sed -i 's/64bit/32bit/g' nfpm.yaml && sed -i 's/amd64/i386/g' nfpm.yaml && nfpm pkg -f nfpm.yaml -t build/repogen_${APP_VERSION_NO_V}_i386.deb
+  - sed -i 's/32bit/arm/g' nfpm.yaml && sed -i 's/i386/armhf/g' nfpm.yaml && nfpm pkg -f nfpm.yaml -t build/repogen_${APP_VERSION_NO_V}_armhf.deb
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: ghr $TRAVIS_TAG build
+  on:
+    tags: true
+    branch: master

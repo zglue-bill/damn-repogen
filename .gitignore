@@ -1,0 +1,15 @@
+in
+out
+.idea
+.vscode
+test.sh
+build
+ui
+repogen
+*.swp
+*.tmp
+tmp/
+temp/
+*.bak
+*.rej
+
